@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoyageAI Travel Planner</title>
+    <link rel="stylesheet" href="/static/script.css?v={{ v }}">
+</head>
+
+<body>
+    <div class="page-bg">
+        <div class="gradient-circle circle-1"></div>
+        <div class="gradient-circle circle-2"></div>
+        <div class="gradient-circle circle-3"></div>
+    </div>
+
+    <main class="app-container">
+
+        <section class="hero-section">
+            <div class="badge">✈️ VoyageAI — U.S. Travel Planner with LangGraph</div>
+            <h1>Plan your U.S. trip with real flight and hotel data</h1>
+            <p>
+                For trips within the 50 states and Washington, DC. Prices, flights and hotels come straight from live search results, with sources.
+                The AI only plans your days, and every plan is checked before you see it.
+            </p>
+        </section>
+
+        <section id="chatSection" class="result-section hidden">
+            <div class="result-header">
+                <div>
+                    <h2>Your trip conversation</h2>
+                    <p>To change the plan, use the Chat tab (e.g. "make it nonstop only"), or fill in the form again.</p>
+                </div>
+                <div class="result-actions">
+                    <button class="copy-btn" onclick="copyResult()">Copy plan</button>
+                    <button class="download-btn" onclick="downloadPDF()">Download PDF</button>
+                    <button class="copy-btn" onclick="newTrip()">New trip</button>
+                </div>
+            </div>
+            <div id="chatLog" class="chat-log"></div>
+        </section>
+
+        <section class="planner-card">
+            <div class="tabs" role="tablist">
+                <button class="tab active" id="tabForm" role="tab" aria-selected="true" onclick="showTab('form')">📝 Plan with form</button>
+                <button class="tab" id="tabChat" role="tab" aria-selected="false" onclick="showTab('chat')">💬 Chat</button>
+                <div class="status-pill"><span class="status-dot"></span>Online</div>
+            </div>
+
+            <!-- ============ TAB 1: FORM ============ -->
+            <form id="formPanel" class="trip-form" onsubmit="submitForm(event)" autocomplete="off" novalidate>
+                <p class="panel-hint">Most accurate: you pick every detail, so nothing has to be guessed.</p>
+
+                <div class="form-row route-row">
+                    <div class="field ac">
+                        <label for="fromInput">From</label>
+                        <input id="fromInput" type="text" placeholder="City or airport, e.g. Atlanta" data-ac="from">
+                        <div class="ac-list hidden" id="fromList" role="listbox"></div>
+                    </div>
+                    <button type="button" class="swap-btn" title="Swap From and To" onclick="swapRoute()">⇄</button>
+                    <div class="field ac">
+                        <label for="toInput">To</label>
+                        <input id="toInput" type="text" placeholder="City or airport, e.g. New York" data-ac="to">
+                        <div class="ac-list hidden" id="toList" role="listbox"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label>Trip type</label>
+                        <div class="segmented">
+                            <button type="button" class="seg active" data-trip="round" onclick="setTripType('round')">Round trip</button>
+                            <button type="button" class="seg" data-trip="oneway" onclick="setTripType('oneway')">One way</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="departDate">Depart</label>
+                        <input id="departDate" type="date">
+                    </div>
+                    <div class="field" id="returnField">
+                        <label for="returnDate">Return</label>
+                        <input id="returnDate" type="date">
+                    </div>
+                    <div class="field hidden" id="nightsField">
+                        <label for="nightsInput">Hotel nights</label>
+                        <input id="nightsInput" type="number" min="0" max="30" value="2">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="field">
+                        <label>Adults</label>
+                        <div class="stepper" data-min="1" data-max="9">
+                            <button type="button" onclick="step('adults', -1)">−</button>
+                            <span id="adults">2</span>
+                            <button type="button" onclick="step('adults', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Children</label>
+                        <div class="stepper" data-min="0" data-max="8">
+                            <button type="button" onclick="step('children', -1)">−</button>
+                            <span id="children">0</span>
+                            <button type="button" onclick="step('children', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="budgetInput">Total budget (USD)</label>
+                        <input id="budgetInput" type="number" min="1" step="50" placeholder="Optional, e.g. 1500">
+                    </div>
+                    <div class="field">
+                        <label for="cabinSelect">Cabin</label>
+                        <select id="cabinSelect">
+                            <option value="economy">Economy</option>
+                            <option value="premium_economy">Premium economy</option>
+                            <option value="business">Business</option>
+                            <option value="first">First</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row prefs-row">
+                    <label class="toggle"><input type="checkbox" id="nonstopInput"><span></span>Nonstop flights only</label>
+                    <div class="field inline">
+                        <label for="ratingSelect">Hotel rating</label>
+                        <select id="ratingSelect">
+                            <option value="">Any</option>
+                            <option value="3.5">3.5+</option>
+                            <option value="4" selected>4.0+</option>
+                            <option value="4.5">4.5+</option>
+                        </select>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="rentalsInput"><span></span>Include vacation rentals</label>
+                    <label class="toggle"><input type="checkbox" id="hostelsInput"><span></span>Include hostels</label>
+                </div>
+
+                <div class="field">
+                    <label>Interests <small>(optional, helps the day plan)</small></label>
+                    <div class="chips" id="interestChips">
+                        <button type="button" class="chip">Food</button>
+                        <button type="button" class="chip">Museums</button>
+                        <button type="button" class="chip">Beaches</button>
+                        <button type="button" class="chip">Outdoors</button>
+                        <button type="button" class="chip">Nightlife</button>
+                        <button type="button" class="chip">Shopping</button>
+                        <button type="button" class="chip">Family-friendly</button>
+                        <button type="button" class="chip">History</button>
+                        <button type="button" class="chip">Live music</button>
+                        <button type="button" class="chip">Sports</button>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="formBtn" class="primary-btn">
+                        <span class="btn-label">Plan my trip</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                    <p class="hint">Live search takes about 15–40 seconds. After the plan appears, use the Chat tab for changes.</p>
+                </div>
+            </form>
+
+            <!-- ============ TAB 2: CHAT ============ -->
+            <div id="chatPanel" class="hidden">
+                <p class="panel-hint" id="inputTitle">Describe your trip in your own words. I'll ask about anything missing.</p>
+                <div class="input-area">
+                    <textarea id="userInput"
+                        placeholder="Plan a 4-day trip from Atlanta to New York starting December 10, 2026, for 2 adults with a total budget of $1,500."></textarea>
+                    <button id="sendBtn" onclick="sendMessage()">
+                        <span id="btnText">Send</span>
+                        <span id="btnLoader" class="loader hidden"></span>
+                    </button>
+                </div>
+                <p class="hint">Ctrl + Enter to send. Planning takes about 15–40 seconds (live searches).</p>
+
+                <div class="quick-prompts" id="quickPrompts">
+                    <button onclick="setPrompt('Plan a 4-day trip from Atlanta to New York starting December 10, 2026, for 2 adults with a total budget of $1,500.')">Atlanta → New York</button>
+                    <button onclick="setPrompt('I want to visit Chicago from Atlanta.')">Ask me questions</button>
+                    <button onclick="setPrompt('Seattle to Honolulu, January 15 to 22, 2027, 2 adults, budget $4,000. We love beaches and food.')">Seattle → Honolulu</button>
+                    <button onclick="setPrompt('Make it nonstop only.')">Follow-up: nonstop only</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="errorBox" class="error-box hidden"></section>
+
+        <!-- Hidden container used only to build the PDF of the latest plan -->
+        <div id="pdfContent" class="pdf-content pdf-offscreen">
+            <h1 class="pdf-title">VoyageAI Travel Plan</h1>
+            <div id="pdfBox" class="result-box"></div>
+        </div>
+    </main>
+
+    <footer>Built with FastAPI, LangGraph, Groq, PostgreSQL, SerpApi (Google Flights &amp; Hotels) and Tavily</footer>
+
+    <!-- Served from static/vendor (pinned: marked 12.0.2, DOMPurify 3.1.6, html2pdf.js 0.10.1) -->
+    <script src="/static/vendor/marked.min.js?v={{ v }}"></script>
+    <script src="/static/vendor/purify.min.js?v={{ v }}"></script>
+    <script src="/static/vendor/html2pdf.bundle.min.js?v={{ v }}"></script>
+    <script src="/static/script.js?v={{ v }}"></script>
+</body>
+</html>
